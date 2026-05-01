@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>競技カルタ 対戦記録</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+  :root {
+    --ink: #1a1208; --paper: #f5f0e8; --paper2: #ece5d4;
+    --red: #8b1a1a; --red-light: #c0392b;
+    --gold: #b8860b; --gold-light: #d4a843;
+    --gray: #7a7060; --gray-light: #b0a898;
+    --border: #c8bda8; --win: #1a5c2e; --lose: #7a1a1a;
+    --shadow: rgba(26,18,8,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--paper); color: var(--ink); min-height: 100vh;
+    background-image: radial-gradient(ellipse at 20% 0%,rgba(184,134,11,.08) 0%,transparent 60%),
+                      radial-gradient(ellipse at 80% 100%,rgba(139,26,26,.06) 0%,transparent 60%);
+  }
+  header {
+    background: var(--ink); color: var(--paper); text-align: center;
+    padding: 16px 20px 12px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+  header h1 { font-family:'Shippori Mincho',serif; font-size:20px; letter-spacing:.12em; color:var(--gold-light); }
+  header p { font-size:11px; color:var(--gray-light); margin-top:2px; letter-spacing:.08em; }
+
+  nav { display:flex; background:#fff; border-bottom:2px solid var(--border); position:sticky; top:64px; z-index:99; }
+  nav button {
+    flex:1; padding:12px 4px 10px; border:none; background:transparent;
+    font-family:'Noto Sans JP',sans-serif; font-size:12px; color:var(--gray); cursor:pointer;
+    border-bottom:3px solid transparent; transition:all .2s;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  nav button .nav-icon { font-size:18px; }
+  nav button.active { color:var(--red); border-bottom-color:var(--red); font-weight:700; }
+  nav button:hover:not(.active) { color:var(--ink); background:var(--paper); }
+
+  .page { display:none; padding:16px; max-width:600px; margin:0 auto; }
+  .page.active { display:block; }
+
+  .card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px var(--shadow); border:1px solid var(--border); }
+  .card-title { font-family:'Shippori Mincho',serif; font-size:15px; font-weight:700; color:var(--red); border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px; letter-spacing:.06em; }
+
+  label { display:block; font-size:12px; color:var(--gray); margin-bottom:4px; font-weight:500; }
+  .form-group { margin-bottom:14px; }
+  input[type="text"],input[type="number"],textarea,select {
+    width:100%; border:1.5px solid var(--border); border-radius:8px;
+    padding:9px 12px; font-family:'Noto Sans JP',sans-serif; font-size:14px;
+    color:var(--ink); background:var(--paper); transition:border-color .2s; appearance:none;
+  }
+  input:focus,textarea:focus,select:focus { outline:none; border-color:var(--gold); background:#fff; }
+  textarea { resize:vertical; min-height:72px; }
+
+  .chip-group { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { padding:6px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--paper); font-size:13px; cursor:pointer; transition:all .18s; font-family:'Noto Sans JP',sans-serif; color:var(--ink); font-weight:500; }
+  .chip:hover { border-color:var(--gold); }
+  .chip.selected { background:var(--red); color:#fff; border-color:var(--red); }
+  .chip.win.selected { background:var(--win); border-color:var(--win); }
+  .chip.lose.selected { background:var(--lose); border-color:var(--lose); }
+
+  .btn { display:inline-block; padding:10px 24px; border-radius:8px; border:none; font-family:'Noto Sans JP',sans-serif; font-size:14px; font-weight:700; cursor:pointer; transition:all .18s; letter-spacing:.04em; }
+  .btn-primary { background:var(--red); color:#fff; }
+  .btn-primary:hover { background:var(--red-light); }
+  .btn-secondary { background:var(--paper2); color:var(--ink); border:1.5px solid var(--border); }
+  .btn-secondary:hover { background:var(--border); }
+  .btn-gold { background:var(--gold); color:#fff; }
+  .btn-gold:hover { background:var(--gold-light); }
+  .btn-sm { padding:6px 14px; font-size:12px; }
+  .btn-danger { background:#fff; color:var(--red); border:1.5px solid var(--red); }
+  .btn-danger:hover { background:var(--red); color:#fff; }
+  .btn-block { width:100%; text-align:center; }
+  .btn-outline-green { background:#fff; color:var(--win); border:1.5px solid var(--win); font-family:'Noto Sans JP',sans-serif; font-size:12px; font-weight:700; padding:6px 14px; border-radius:8px; cursor:pointer; transition:all .18s; }
+  .btn-outline-green:hover { background:#e8f4e8; }
+
+  /* Calendar */
+  .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .cal-title { font-family:'Shippori Mincho',serif; font-size:17px; font-weight:700; letter-spacing:.06em; }
+  .cal-nav { background:none; border:1.5px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:16px; color:var(--ink); }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-dow { text-align:center; font-size:11px; color:var(--gray); padding:4px 0; font-weight:700; }
+  .cal-dow:first-child { color:var(--red); }
+  .cal-dow:last-child { color:#1a4c7a; }
+  .cal-day { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:8px; cursor:pointer; font-size:13px; border:1.5px solid transparent; transition:all .15s; padding:2px 0; gap:1px; position:relative; }
+  .cal-day:hover { background:var(--paper2); border-color:var(--border); }
+  .cal-day.today { border-color:var(--gold); color:var(--gold); font-weight:700; }
+  .cal-day.selected { background:var(--red); color:#fff !important; border-color:var(--red); }
+  .cal-day.other-month { color:var(--gray-light); }
+  .cal-day.sun { color:#c0392b; }
+  .cal-day.sat { color:#1a4c7a; }
+  .cal-count { font-size:9px; font-weight:700; line-height:1; color:var(--gray); letter-spacing:0; }
+  .cal-day.selected .cal-count { color:rgba(255,255,255,.85); }
+  .cal-day.today .cal-count { color:var(--gold); }
+  .cal-dots { display:flex; gap:2px; align-items:center; justify-content:center; min-height:7px; }
+  .cal-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .cal-dot.tournament { background:#c0790a; }
+  .cal-dot.practice   { background:#1a7a3a; }
+  .cal-dot.solo       { background:#2563b0; }
+  .cal-day.selected .cal-dot { opacity:.9; }
+
+  /* Match */
+  .match-item { padding:12px 14px; border-radius:10px; background:var(--paper); border:1px solid var(--border); margin-bottom:10px; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .match-num { font-size:11px; color:var(--gray); font-weight:700; min-width:28px; }
+  .match-body { flex:1; }
+  .match-type { font-size:11px; color:var(--gray); }
+  .match-summary { font-size:14px; font-weight:600; margin-top:2px; }
+  .match-summary .win-text { color:var(--win); }
+  .match-summary .lose-text { color:var(--lose); }
+  .match-detail { font-size:12px; color:var(--gray); margin-top:3px; }
+  .match-actions { display:flex; gap:6px; flex-shrink:0; }
+
+  /* Player */
+  .player-card { background:#fff; border-radius:10px; border:1px solid var(--border); padding:14px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .player-avatar { width:40px; height:40px; border-radius:50%; background:var(--ink); color:var(--gold-light); display:flex; align-items:center; justify-content:center; font-family:'Shippori Mincho',serif; font-size:16px; flex-shrink:0; }
+  .player-info { flex:1; }
+  .player-name { font-size:15px; font-weight:700; }
+  .player-meta { font-size:12px; color:var(--gray); margin-top:2px; }
+  .player-actions { display:flex; gap:6px; }
+
+  .filter-bar { display:flex; gap:8px; margin-bottom:14px; align-items:center; flex-wrap:wrap; }
+  .filter-bar select { flex:1; min-width:100px; font-size:13px; padding:7px 10px; }
+  .filter-bar .sort-btn { padding:7px 12px; border-radius:8px; border:1.5px solid var(--border); background:var(--paper); font-size:12px; cursor:pointer; font-family:'Noto Sans JP',sans-serif; color:var(--ink); white-space:nowrap; transition:all .15s; font-weight:500; }
+  .filter-bar .sort-btn.active { background:var(--ink); color:var(--gold-light); border-color:var(--ink); }
+
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; letter-spacing:.04em; }
+  .badge-A { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
+  .badge-B { background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
+  .badge-C { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+  .badge-D { background:#ede9fe; color:#4c1d95; border:1px solid #c4b5fd; }
+  .badge-E { background:#fee2e2; color:#7f1d1d; border:1px solid #fca5a5; }
+
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(26,18,8,.55); z-index:200; align-items:flex-end; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:#fff; border-radius:20px 20px 0 0; padding:20px 16px 32px; width:100%; max-width:600px; max-height:90vh; overflow-y:auto; animation:slideUp .25s ease; }
+  @keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 16px; }
+  .modal-title { font-family:'Shippori Mincho',serif; font-size:17px; font-weight:700; margin-bottom:16px; color:var(--red); letter-spacing:.06em; }
+
+  .quick-reg-panel { display:none; background:#f0f7f0; border:1.5px solid #6ee7b7; border-radius:10px; padding:14px; margin-top:10px; }
+  .quick-reg-panel.open { display:block; }
+  .quick-reg-title { font-size:13px; font-weight:700; color:var(--win); margin-bottom:10px; }
+  .qr-hand-chips { display:flex; gap:8px; }
+  .qr-hand-chip { padding:5px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--paper); font-size:13px; cursor:pointer; transition:all .18s; font-family:'Noto Sans JP',sans-serif; color:var(--ink); font-weight:500; }
+  .qr-hand-chip.selected { background:var(--red); color:#fff; border-color:var(--red); }
+
+  .player-select-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  #playerSelectList { max-height:200px; overflow-y:auto; border:1.5px solid var(--border); border-radius:8px; }
+  .player-option { padding:10px 12px; display:flex; align-items:center; gap:8px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; transition:background .15s; }
+  .player-option:last-child { border-bottom:none; }
+  .player-option:hover { background:var(--paper); }
+  .player-option.selected { background:#fff3e0; }
+  .player-option .pl-av { width:28px; height:28px; border-radius:50%; background:var(--ink); color:var(--gold-light); font-family:'Shippori Mincho',serif; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  /* Analytics table */
+  .ana-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .ana-table thead th { background:var(--ink); color:var(--gold-light); font-family:'Shippori Mincho',serif; font-weight:600; padding:10px 8px; text-align:center; font-size:11px; letter-spacing:.04em; white-space:nowrap; line-height:1.5; }
+  .ana-table thead th:first-child { text-align:left; padding-left:12px; min-width:64px; }
+  .ana-table tbody tr { border-bottom:2px solid var(--border); }
+  .ana-table tbody tr:nth-child(even) { background:var(--paper); }
+  .ana-table tbody tr:last-child { border-bottom:none; }
+  .ana-table td { padding:12px 8px; vertical-align:middle; line-height:1.4; }
+  .ana-table td:first-child { padding-left:12px; }
+  .ana-num { text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ana-wl { text-align:center; }
+  .ana-wl-inner { display:flex; flex-direction:column; align-items:center; gap:1px; }
+  .ana-win { color:var(--win); font-weight:700; }
+  .ana-lose { color:var(--lose); font-weight:700; }
+  .ana-win-val { color:var(--win); font-weight:600; }
+  .ana-lose-val { color:var(--lose); font-weight:600; }
+  .ana-bar-wrap { height:4px; background:var(--paper2); border-radius:2px; margin-top:5px; overflow:hidden; min-width:40px; }
+  .ana-bar-fill { height:100%; background:var(--win); border-radius:2px; }
+  .ana-all-label { font-weight:700; font-size:13px; }
+  .ana-solo-note { font-size:10px; color:var(--gray); margin-top:2px; }
+  .ana-solo-row td { background:#f0f7f0; }
+  .ana-solo-badge { display:inline-block; padding:3px 9px; border-radius:10px; font-size:11px; font-weight:700; background:#e8f4e8; color:#1a5c2e; border:1px solid #6ee7b7; }
+
+  .player-group-header { font-size:11px; font-weight:700; color:var(--gray); padding:8px 4px 4px; letter-spacing:.06em; border-bottom:1px solid var(--border); margin-bottom:8px; margin-top:6px; }
+  .player-group-header:first-child { margin-top:0; }
+
+  /* Settings */
+  .setting-step { display:flex; gap:12px; align-items:flex-start; margin-bottom:14px; }
+  .setting-step-num { width:28px; height:28px; border-radius:50%; background:var(--ink); color:var(--gold-light); font-family:'Shippori Mincho',serif; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .setting-step-body { flex:1; font-size:13px; line-height:1.7; color:var(--ink); }
+  .setting-step-body strong { color:var(--red); }
+
+  /* DB status badge */
+  .db-status { display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:4px 10px; border-radius:12px; font-weight:600; margin-bottom:12px; }
+  .db-status.ok { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+  .db-status.warn { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
+
+  .empty-state { text-align:center; padding:40px 20px; color:var(--gray); }
+  .empty-state .empty-icon { font-size:40px; margin-bottom:12px; }
+  .empty-state p { font-size:14px; line-height:1.7; }
+  .flex-row { display:flex; gap:10px; }
+  .flex-row > * { flex:1; }
+  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:10px 20px; border-radius:20px; font-size:13px; z-index:999; opacity:0; pointer-events:none; transition:opacity .25s; }
+  .toast.show { opacity:1; }
+  select option { font-family:'Noto Sans JP',sans-serif; }
+
+  /* Loading overlay */
+  #loadingOverlay { position:fixed; inset:0; background:var(--paper); display:flex; align-items:center; justify-content:center; z-index:9999; flex-direction:column; gap:12px; }
+  #loadingOverlay p { font-family:'Shippori Mincho',serif; font-size:15px; color:var(--gray); }
+  .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--red); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <p>データを読み込み中…</p>
+</div>
+
+<header>
+  <h1>競技カルタ 対戦記録</h1>
+  <p>百人一首競技カルタ 個人記録管理</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('calendar')" id="nav-calendar"><span class="nav-icon">📅</span>記録</button>
+  <button onclick="showPage('players')" id="nav-players"><span class="nav-icon">👤</span>選手</button>
+  <button onclick="showPage('analytics')" id="nav-analytics"><span class="nav-icon">📊</span>分析</button>
+  <button onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span>設定</button>
+</nav>
+
+<!-- PAGE: CALENDAR -->
+<div id="page-calendar" class="page active">
+  <div class="card">
+    <div class="cal-header">
+      <button class="cal-nav" id="prevMonth">‹</button>
+      <div class="cal-title" id="calMonthTitle"></div>
+      <button class="cal-nav" id="nextMonth">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:10px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--gray);"><span class="cal-dot tournament" style="display:inline-block;"></span>大会</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--gray);"><span class="cal-dot practice" style="display:inline-block;"></span>練習</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--gray);"><span class="cal-dot solo" style="display:inline-block;"></span>１人取り</div>
+    </div>
+  </div>
+  <div id="daySection" style="display:none;">
+    <div class="card">
+      <div class="card-title" id="dayTitle"></div>
+      <div id="matchList"></div>
+      <button class="btn btn-primary btn-block" onclick="openAddMatch()">＋ 試合を追加</button>
+    </div>
+  </div>
+  <div id="noDaySelected" class="empty-state">
+    <div class="empty-icon">📅</div>
+    <p>カレンダーから日付を選択すると<br>その日の試合記録が表示されます</p>
+  </div>
+</div>
+
+<!-- PAGE: PLAYERS -->
+<div id="page-players" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="font-family:'Shippori Mincho',serif;font-size:17px;font-weight:700;">選手データ</div>
+    <button class="btn btn-primary btn-sm" onclick="openPlayerModal()">＋ 追加</button>
+  </div>
+  <div class="filter-bar">
+    <select id="filterGrade" onchange="renderPlayerList()">
+      <option value="">すべての級</option>
+      <option value="A">A 級</option><option value="B">B 級</option><option value="C">C 級</option>
+      <option value="D">D 級</option><option value="E">E 級</option>
+    </select>
+    <select id="filterOrg" onchange="renderPlayerList()"><option value="">すべての所属</option></select>
+    <button class="sort-btn" id="sortByGradeBtn" onclick="setSortMode('grade')">級順</button>
+    <button class="sort-btn" id="sortByOrgBtn" onclick="setSortMode('org')">所属順</button>
+  </div>
+  <div id="playerList"></div>
+  <div id="noPlayers" class="empty-state" style="display:none;">
+    <div class="empty-icon">👤</div>
+    <p>選手データがありません<br>「＋ 追加」から登録してください</p>
+  </div>
+</div>
+
+<!-- PAGE: ANALYTICS -->
+<div id="page-analytics" class="page">
+  <div class="card">
+    <div class="card-title">分析条件</div>
+    <div class="form-group">
+      <label>集計単位</label>
+      <div class="chip-group" id="periodTypeChips">
+        <div class="chip selected" data-val="month" onclick="selectPeriodType(this)">月単位</div>
+        <div class="chip" data-val="year" onclick="selectPeriodType(this)">年単位</div>
+      </div>
+    </div>
+    <div class="form-group" id="periodMonthRow">
+      <label>対象月</label>
+      <input type="month" id="analyticsPeriodMonth" style="max-width:180px;">
+    </div>
+    <div class="form-group" id="periodYearRow" style="display:none;">
+      <label>対象年</label>
+      <select id="analyticsPeriodYear" style="max-width:120px;"></select>
+    </div>
+    <div class="form-group">
+      <label>試合種別</label>
+      <select id="analyticsType">
+        <option value="all">すべて</option>
+        <option value="練習(同会)">練習（同会）</option>
+        <option value="練習(他会)">練習（他会）</option>
+        <option value="大会">大会</option>
+        <option value="1人取り">１人取り</option>
+      </select>
+    </div>
+    <button class="btn btn-gold btn-block" onclick="runAnalytics()">分析する</button>
+  </div>
+  <div id="analyticsResult" style="display:none;"></div>
+</div>
+
+<!-- PAGE: SETTINGS -->
+<div id="page-settings" class="page">
+  <div style="font-family:'Shippori Mincho',serif;font-size:17px;font-weight:700;margin-bottom:16px;">設定・バックアップ</div>
+
+  <!-- Own org setting -->
+  <div class="card">
+    <div class="card-title">🏠 自分の所属会</div>
+    <p style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:12px;">
+      設定しておくと練習（同会）の際に同じ会の選手が自動で絞り込まれます。
+    </p>
+    <div class="form-group">
+      <label>所属会名</label>
+      <input type="text" id="myOrgInput" placeholder="所属会・クラブ名" list="myOrgSuggestions" autocomplete="off">
+      <datalist id="myOrgSuggestions"></datalist>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveMyOrg()">保存する</button>
+  </div>
+
+  <!-- Home screen guide -->
+  <div class="card">
+    <div class="card-title">📱 ホーム画面に追加する（推奨）</div>
+    <div id="dbStatusBadge"></div>
+    <p style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:14px;">
+      ホーム画面から起動するとデータが消えにくくなります。<br>
+      以下の手順でホーム画面に追加してください。
+    </p>
+    <div class="setting-step">
+      <div class="setting-step-num">1</div>
+      <div class="setting-step-body">Safariの画面下の<strong>共有ボタン（四角から矢印が出たアイコン）</strong>をタップ</div>
+    </div>
+    <div class="setting-step">
+      <div class="setting-step-num">2</div>
+      <div class="setting-step-body">メニューをスクロールして<strong>「ホーム画面に追加」</strong>をタップ</div>
+    </div>
+    <div class="setting-step">
+      <div class="setting-step-num">3</div>
+      <div class="setting-step-body"><strong>「追加」</strong>をタップして完了。次回からホーム画面のアイコンから起動してください</div>
+    </div>
+  </div>
+
+  <!-- Export -->
+  <div class="card">
+    <div class="card-title">📤 バックアップを保存</div>
+    <p style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:14px;">
+      試合記録・選手データをJSONファイルとして書き出します。<br>定期的に保存しておくと安心です。
+    </p>
+    <button class="btn btn-gold btn-block" onclick="exportData()">バックアップファイルを保存</button>
+  </div>
+
+  <!-- Import -->
+  <div class="card">
+    <div class="card-title">📥 バックアップから復元</div>
+    <p style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:14px;">
+      以前保存したバックアップファイルを読み込みます。<br>
+      <span style="color:var(--red);font-weight:600;">※ 現在のデータはすべて上書きされます。</span>
+    </p>
+    <label class="btn btn-secondary btn-block" style="text-align:center;cursor:pointer;display:block;">
+      ファイルを選択して復元する
+      <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
+    </label>
+  </div>
+
+  <!-- Clear -->
+  <div class="card">
+    <div class="card-title">🗑️ データを全削除</div>
+    <p style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:14px;">
+      すべての試合記録・選手データを削除します。<br>
+      <span style="color:var(--red);font-weight:600;">※ この操作は元に戻せません。</span>
+    </p>
+    <button class="btn btn-danger btn-block" onclick="clearAllData()">すべてのデータを削除</button>
+  </div>
+
+  <div style="text-align:center;font-size:11px;color:var(--gray-light);margin-top:8px;">競技カルタ 対戦記録 v5</div>
+</div>
+
+<!-- MODAL: MATCH -->
+<div class="modal-overlay" id="matchModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="matchModalTitle">試合を記録</div>
+    <div class="form-group">
+      <label>試合種別</label>
+      <div class="chip-group">
+        <div class="chip" data-val="練習(同会)" onclick="selectMatchType(this)">練習（同会）</div>
+        <div class="chip" data-val="練習(他会)" onclick="selectMatchType(this)">練習（他会）</div>
+        <div class="chip" data-val="大会" onclick="selectMatchType(this)">大会</div>
+        <div class="chip" data-val="1人取り" onclick="selectMatchType(this)">１人取り</div>
+      </div>
+    </div>
+    <div id="vsFields" style="display:none;">
+      <div class="form-group">
+        <label>相手の級</label>
+        <div class="chip-group" id="gradeChips">
+          <div class="chip" data-val="A" onclick="selectGrade(this)">A 級</div>
+          <div class="chip" data-val="B" onclick="selectGrade(this)">B 級</div>
+          <div class="chip" data-val="C" onclick="selectGrade(this)">C 級</div>
+          <div class="chip" data-val="D" onclick="selectGrade(this)">D 級</div>
+          <div class="chip" data-val="E" onclick="selectGrade(this)">E 級</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="player-select-header">
+          <label style="margin-bottom:0;">相手の選手（任意）</label>
+          <button class="btn-outline-green" onclick="toggleQuickReg()">＋ 新規登録</button>
+        </div>
+        <div id="playerSelectList"></div>
+        <div style="margin-top:6px;font-size:12px;color:var(--gray);">未選択の場合は匿名として記録されます</div>
+        <div class="quick-reg-panel" id="quickRegPanel">
+          <div class="quick-reg-title">✚ 選手を新規登録</div>
+          <div class="form-group">
+            <label>名前 <span style="color:var(--red)">*</span></label>
+            <input type="text" id="qrName" placeholder="選手名">
+          </div>
+          <div class="flex-row">
+            <div class="form-group">
+              <label>級</label>
+              <select id="qrGrade" onchange="onQrGradeChange()"><option value="">選択</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select>
+            </div>
+            <div class="form-group">
+              <label>段位</label>
+              <select id="qrDan"><option value="">選択</option><option>十段</option><option>九段</option><option>八段</option><option>七段</option><option>六段</option><option>五段</option><option>四段</option><option>三段</option><option>二段</option><option>初段</option><option>無段</option></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>所属</label>
+            <input type="text" id="qrOrg" placeholder="所属会・クラブ名" list="qrOrgSuggestions" autocomplete="off">
+            <datalist id="qrOrgSuggestions"></datalist>
+          </div>
+          <div class="form-group">
+            <label>有効手</label>
+            <div class="qr-hand-chips">
+              <div class="qr-hand-chip" data-val="右手" onclick="selectQrHand(this)">右手</div>
+              <div class="qr-hand-chip" data-val="左手" onclick="selectQrHand(this)">左手</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="toggleQuickReg()">キャンセル</button>
+            <button class="btn btn-gold btn-sm" style="flex:2;" onclick="saveQuickPlayer()">登録して選択</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>勝敗</label>
+        <div class="chip-group">
+          <div class="chip win" data-val="勝" onclick="selectResult(this)">勝ち</div>
+          <div class="chip lose" data-val="敗" onclick="selectResult(this)">負け</div>
+        </div>
+      </div>
+      <div class="flex-row">
+        <div class="form-group"><label>枚数差</label><input type="number" id="cardDiff" placeholder="枚" min="0" max="100"></div>
+        <div class="form-group"><label>お手つき</label><input type="number" id="foulCount" placeholder="枚" min="0"></div>
+      </div>
+    </div>
+    <div id="soloFields" style="display:none;">
+      <div class="form-group"><label>お手つき</label><input type="number" id="soloFoulCount" placeholder="枚" min="0"></div>
+    </div>
+    <div class="form-group"><label>メモ</label><textarea id="matchMemo" placeholder="試合についてのメモ（任意）"></textarea></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeMatchModal()">キャンセル</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="saveMatch()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PLAYER -->
+<div class="modal-overlay" id="playerModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="playerModalTitle">選手を追加</div>
+    <input type="hidden" id="editPlayerId">
+    <div class="form-group"><label>名前 <span style="color:var(--red)">*</span></label><input type="text" id="playerName" placeholder="選手名"></div>
+    <div class="flex-row">
+      <div class="form-group">
+        <label>級</label>
+        <select id="playerGrade" onchange="onPlayerGradeChange()"><option value="">選択</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select>
+      </div>
+      <div class="form-group">
+        <label>段位</label>
+        <select id="playerDan"><option value="">選択</option><option>十段</option><option>九段</option><option>八段</option><option>七段</option><option>六段</option><option>五段</option><option>四段</option><option>三段</option><option>二段</option><option>初段</option><option>無段</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>所属</label><input type="text" id="playerOrg" placeholder="所属会・クラブ名" list="orgSuggestions" autocomplete="off"><datalist id="orgSuggestions"></datalist></div>
+    <div class="form-group">
+      <label>有効手</label>
+      <div class="chip-group" id="handChips">
+        <div class="chip" data-val="右手" onclick="selectHand(this)">右手</div>
+        <div class="chip" data-val="左手" onclick="selectHand(this)">左手</div>
+      </div>
+    </div>
+    <div class="form-group"><label>メモ</label><textarea id="playerMemo" placeholder="メモ（任意）"></textarea></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closePlayerModal()">キャンセル</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="savePlayer()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== IndexedDB ====================
+const IDB_NAME = 'KarutaDB';
+const IDB_VER  = 1;
+const IDB_STORE = 'data';
+const IDB_KEY   = 'karuta_main';
+let idb = null;
+let db  = { players: [], matches: [] };
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = e => { idb = e.target.result; resolve(); };
+    req.onerror   = e => reject(e);
+  });
+}
+
+function loadFromIDB() {
+  return new Promise((resolve) => {
+    const tx = idb.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    req.onsuccess = e => {
+      if (e.target.result) db = e.target.result;
+      else {
+        // migrate from localStorage if exists
+        try {
+          const raw = localStorage.getItem('karuta_db_v1');
+          if (raw) { db = JSON.parse(raw); saveToDB(); }
+        } catch(e2) {}
+      }
+      resolve();
+    };
+    req.onerror = () => resolve();
+  });
+}
+
+function saveToDB() {
+  if (!idb) return;
+  const tx = idb.transaction(IDB_STORE, 'readwrite');
+  tx.objectStore(IDB_STORE).put(db, IDB_KEY);
+}
+
+// Legacy fallback
+function saveDB() { saveToDB(); }
+
+// ==================== UTILS ====================
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function dateKey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+// ==================== NAV ====================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'players') renderPlayerList();
+  if (name === 'analytics') initAnalytics();
+  if (name === 'settings') renderDbStatus();
+}
+
+function renderDbStatus() {
+  const el = document.getElementById('dbStatusBadge');
+  const isHome = window.navigator.standalone === true;
+  if (isHome) {
+    el.innerHTML = '<div class="db-status ok">✅ ホーム画面から起動中 — データは安全に保存されています</div>';
+  } else {
+    el.innerHTML = '<div class="db-status warn">⚠️ Safariブラウザから起動中 — ホーム画面に追加するとより安全です</div>';
+  }
+  // 自分の所属会を表示
+  const orgInput = document.getElementById('myOrgInput');
+  if(orgInput) {
+    orgInput.value = db.myOrg || '';
+    const dl = document.getElementById('myOrgSuggestions');
+    const orgs=[...new Set(db.players.map(p=>p.org).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
+    dl.innerHTML=orgs.map(o=>`<option value="${o}">`).join('');
+  }
+}
+function saveMyOrg(){
+  const val = document.getElementById('myOrgInput').value.trim();
+  db.myOrg = val;
+  saveToDB();
+  showToast(val ? `所属会を「${val}」に設定しました` : '所属会の設定を解除しました');
+}
+
+// ==================== BACKUP ====================
+function exportData() {
+  const now = new Date();
+  const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+  const json = JSON.stringify(db, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `karuta_backup_${ts}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('バックアップを保存しました');
+}
+
+function importData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.players || !data.matches) { showToast('⚠️ ファイルの形式が正しくありません'); return; }
+      if (!confirm(`データを読み込みます。\n選手: ${data.players.length}件 / 試合: ${data.matches.length}件\n\n現在のデータはすべて上書きされます。よろしいですか？`)) { event.target.value=''; return; }
+      db = data; saveToDB(); renderCalendar();
+      showToast(`読み込み完了（選手${data.players.length}件・試合${data.matches.length}件）`);
+    } catch(err) { showToast('⚠️ ファイルの読み込みに失敗しました'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  if (!confirm('すべての試合記録・選手データを削除します。\nこの操作は元に戻せません。\n\n本当に削除しますか？')) return;
+  if (!confirm('最終確認です。本当にすべて削除しますか？')) return;
+  db = { players: [], matches: [] }; saveToDB();
+  selectedDate = null; renderCalendar();
+  document.getElementById('daySection').style.display = 'none';
+  document.getElementById('noDaySelected').style.display = 'block';
+  showToast('データを全削除しました');
+}
+
+// ==================== CALENDAR ====================
+let calYear, calMonth, selectedDate = null;
+function initCalendar() { const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); renderCalendar(); }
+function renderCalendar() {
+  document.getElementById('calMonthTitle').textContent = `${calYear}年 ${calMonth+1}月`;
+  const grid = document.getElementById('calGrid'); grid.innerHTML='';
+  ['日','月','火','水','木','金','土'].forEach((d,i)=>{
+    const el=document.createElement('div'); el.className='cal-dow';
+    if(i===0)el.style.color='var(--red)'; if(i===6)el.style.color='#1a4c7a';
+    el.textContent=d; grid.appendChild(el);
+  });
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const today=new Date();
+  const prevDays=new Date(calYear,calMonth,0).getDate();
+  for(let i=firstDay-1;i>=0;i--){
+    const el=document.createElement('div'); el.className='cal-day other-month'; el.textContent=prevDays-i; grid.appendChild(el);
+  }
+  for(let d=1;d<=daysInMonth;d++){
+    const el=document.createElement('div');
+    const dow=new Date(calYear,calMonth,d).getDay();
+    let cls='cal-day';
+    if(dow===0)cls+=' sun'; if(dow===6)cls+=' sat';
+    if(today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===d)cls+=' today';
+    const key=dateKey(calYear,calMonth,d);
+    if(selectedDate===key)cls+=' selected';
+    const dayMatches=db.matches.filter(m=>m.date===key);
+    el.className=cls;
+    const numSpan=document.createElement('span'); numSpan.textContent=d; el.appendChild(numSpan);
+    if(dayMatches.length>0){
+      const ce=document.createElement('div'); ce.className='cal-count'; ce.textContent=dayMatches.length+'試合'; el.appendChild(ce);
+    }
+    const dotsEl=document.createElement('div'); dotsEl.className='cal-dots';
+    if(dayMatches.some(m=>m.type==='大会')){const dot=document.createElement('span');dot.className='cal-dot tournament';dotsEl.appendChild(dot);}
+    if(dayMatches.some(m=>m.type==='練習(同会)'||m.type==='練習(他会)')){const dot=document.createElement('span');dot.className='cal-dot practice';dotsEl.appendChild(dot);}
+    if(dayMatches.some(m=>m.type==='1人取り')){const dot=document.createElement('span');dot.className='cal-dot solo';dotsEl.appendChild(dot);}
+    el.appendChild(dotsEl);
+    el.addEventListener('click',()=>selectDay(calYear,calMonth,d));
+    grid.appendChild(el);
+  }
+}
+function selectDay(y,m,d){ selectedDate=dateKey(y,m,d); renderCalendar(); renderDaySection(); }
+function renderDaySection(){
+  if(!selectedDate)return;
+  const [y,mo,d]=selectedDate.split('-');
+  document.getElementById('dayTitle').textContent=`${y}年${parseInt(mo)}月${parseInt(d)}日 の記録`;
+  const matches=db.matches.filter(m=>m.date===selectedDate).sort((a,b)=>a.order-b.order);
+  const list=document.getElementById('matchList'); list.innerHTML='';
+  if(matches.length===0){list.innerHTML='<div style="text-align:center;color:var(--gray);font-size:13px;padding:16px 0;">この日の記録はありません</div>';}
+  else{matches.forEach((m,idx)=>list.appendChild(buildMatchItem(m,idx+1)));}
+  document.getElementById('daySection').style.display='block';
+  document.getElementById('noDaySelected').style.display='none';
+}
+function buildMatchItem(m,num){
+  const div=document.createElement('div'); div.className='match-item';
+  let summary='',detail='';
+  if(m.type==='1人取り'){summary=`１人取り`;detail=`お手つき: ${m.soloFoul??0}枚`;}
+  else{
+    const opName=m.playerName||'匿名';
+    const gradeHtml=m.opponentGrade?`<span class="badge badge-${m.opponentGrade}">${m.opponentGrade}級</span> `:'';
+    const winClass=m.result==='勝'?'win-text':'lose-text';
+    summary=`${gradeHtml}${opName} ― <span class="${winClass}">${m.result==='勝'?'勝ち':'負け'} ${m.cardDiff}枚差</span>`;
+    detail=`${m.type}　お手つき: ${m.foul??0}枚`;
+  }
+  div.innerHTML=`
+    <div class="match-num">${num}試合目</div>
+    <div class="match-body">
+      <div class="match-type">${m.type}</div>
+      <div class="match-summary">${summary}</div>
+      <div class="match-detail">${detail}${m.memo?'　📝 '+m.memo.slice(0,20)+(m.memo.length>20?'…':''):''}</div>
+    </div>
+    <div class="match-actions">
+      <button class="btn btn-secondary btn-sm" onclick="openEditMatch('${m.id}')">編集</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteMatch('${m.id}')">削除</button>
+    </div>`;
+  return div;
+}
+document.getElementById('prevMonth').onclick=()=>{calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();};
+document.getElementById('nextMonth').onclick=()=>{calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();};
+
+// ==================== MATCH MODAL ====================
+let editMatchId=null,selMatchType=null,selGrade=null,selResult=null,selPlayerId=null;
+function resetMatchModal(){
+  editMatchId=null;selMatchType=null;selGrade=null;selResult=null;selPlayerId=null;
+  document.querySelectorAll('#matchModal .chip').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('vsFields').style.display='none';
+  document.getElementById('soloFields').style.display='none';
+  ['cardDiff','foulCount','soloFoulCount','matchMemo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('playerSelectList').innerHTML='';
+  closeQuickReg();
+}
+function openAddMatch(){ resetMatchModal(); document.getElementById('matchModalTitle').textContent='試合を記録'; document.getElementById('matchModal').classList.add('open'); }
+function openEditMatch(id){
+  const m=db.matches.find(x=>x.id===id); if(!m)return;
+  resetMatchModal(); editMatchId=id; selMatchType=m.type; selGrade=m.opponentGrade||null; selResult=m.result||null; selPlayerId=m.playerId||null;
+  document.getElementById('matchModalTitle').textContent='試合を編集';
+  document.querySelectorAll('#matchModal [data-val]').forEach(c=>{if(c.dataset.val===m.type)c.classList.add('selected');});
+  document.getElementById('vsFields').style.display=m.type==='1人取り'?'none':'block';
+  document.getElementById('soloFields').style.display=m.type==='1人取り'?'block':'none';
+  if(m.type!=='1人取り'){
+    if(m.opponentGrade)document.querySelectorAll('#gradeChips .chip').forEach(c=>{if(c.dataset.val===m.opponentGrade)c.classList.add('selected');});
+    if(m.result)document.querySelectorAll('#matchModal .chip.win,#matchModal .chip.lose').forEach(c=>{if(c.dataset.val===m.result)c.classList.add('selected');});
+    renderPlayerSelectList();
+    document.getElementById('cardDiff').value=m.cardDiff??'';
+    document.getElementById('foulCount').value=m.foul??'';
+  }else{ document.getElementById('soloFoulCount').value=m.soloFoul??''; }
+  document.getElementById('matchMemo').value=m.memo||'';
+  document.getElementById('matchModal').classList.add('open');
+}
+function closeMatchModal(){ document.getElementById('matchModal').classList.remove('open'); }
+function selectMatchType(el){
+  document.querySelectorAll('#matchModal > .modal > .form-group:first-of-type .chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected'); selMatchType=el.dataset.val;
+  document.getElementById('vsFields').style.display=selMatchType==='1人取り'?'none':'block';
+  document.getElementById('soloFields').style.display=selMatchType==='1人取り'?'block':'none';
+  if(selMatchType!=='1人取り')renderPlayerSelectList();
+}
+function selectGrade(el){
+  document.querySelectorAll('#gradeChips .chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected'); selGrade=el.dataset.val;
+  renderPlayerSelectList();
+  document.getElementById('qrGrade').value=selGrade;
+  onQrGradeChange();
+}
+function selectResult(el){
+  document.querySelectorAll('#matchModal .chip.win,#matchModal .chip.lose').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected'); selResult=el.dataset.val;
+}
+
+// 級→段位の対応
+const GRADE_DAN_MAP = { E:'無段', D:'初段', C:'二段', B:'三段' };
+const A_DAN_OPTIONS = ['四段','五段','六段','七段','八段','九段','十段'];
+
+function setDanOptions(selectEl, grade){
+  if(!selectEl) return;
+  if(grade==='A'){
+    selectEl.innerHTML='<option value="">選択</option>'+A_DAN_OPTIONS.map(d=>`<option>${d}</option>`).join('');
+    selectEl.disabled=false;
+  } else if(GRADE_DAN_MAP[grade]){
+    selectEl.innerHTML=`<option value="${GRADE_DAN_MAP[grade]}">${GRADE_DAN_MAP[grade]}</option>`;
+    selectEl.value=GRADE_DAN_MAP[grade];
+    selectEl.disabled=true;
+  } else {
+    selectEl.innerHTML='<option value="">選択</option><option>十段</option><option>九段</option><option>八段</option><option>七段</option><option>六段</option><option>五段</option><option>四段</option><option>三段</option><option>二段</option><option>初段</option><option>無段</option>';
+    selectEl.disabled=false;
+  }
+}
+
+// 選手モーダルの級変更
+function onPlayerGradeChange(){
+  setDanOptions(document.getElementById('playerDan'), document.getElementById('playerGrade').value);
+}
+// クイック登録の級変更
+function onQrGradeChange(){
+  setDanOptions(document.getElementById('qrDan'), document.getElementById('qrGrade').value);
+}
+
+let selQrHand = null;
+function selectQrHand(el){
+  document.querySelectorAll('.qr-hand-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected'); selQrHand=el.dataset.val;
+}
+
+function renderPlayerSelectList(){
+  const list=document.getElementById('playerSelectList');
+  let players=[...db.players];
+  // 練習(同会)の場合、自分の所属で絞り込み
+  if(selMatchType==='練習(同会)' && db.myOrg){
+    players=players.filter(p=>p.org===db.myOrg);
+  } else if(selGrade){
+    players=players.filter(p=>p.grade===selGrade);
+  }
+  players.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  list.innerHTML='';
+  const anon=document.createElement('div');
+  anon.className='player-option'+(!selPlayerId?' selected':'');
+  anon.innerHTML=`<div class="pl-av">匿</div><span>匿名</span>`;
+  anon.onclick=()=>{selPlayerId=null;list.querySelectorAll('.player-option').forEach(p=>p.classList.remove('selected'));anon.classList.add('selected');};
+  list.appendChild(anon);
+  players.forEach(p=>{
+    const el=document.createElement('div');
+    el.className='player-option'+(selPlayerId===p.id?' selected':'');
+    el.innerHTML=`<div class="pl-av">${p.name[0]}</div><span>${p.name}</span><span class="badge badge-${p.grade}" style="margin-left:auto;">${p.grade}級</span>`;
+    el.onclick=()=>{selPlayerId=p.id;list.querySelectorAll('.player-option').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');};
+    list.appendChild(el);
+  });
+}
+function toggleQuickReg(){
+  const panel=document.getElementById('quickRegPanel');
+  if(panel.classList.contains('open')){closeQuickReg();}
+  else{
+    panel.classList.add('open');
+    selQrHand=null;
+    document.querySelectorAll('.qr-hand-chip').forEach(c=>c.classList.remove('selected'));
+    document.getElementById('qrName').value='';
+    document.getElementById('qrGrade').value=selGrade||'';
+    onQrGradeChange();
+    document.getElementById('qrOrg').value=db.myOrg||'';
+    const dl=document.getElementById('qrOrgSuggestions');
+    const orgs=[...new Set(db.players.map(p=>p.org).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
+    dl.innerHTML=orgs.map(o=>`<option value="${o}">`).join('');
+  }
+}
+function closeQuickReg(){ document.getElementById('quickRegPanel').classList.remove('open'); selQrHand=null; }
+function saveQuickPlayer(){
+  const name=document.getElementById('qrName').value.trim(); if(!name){showToast('名前を入力してください');return;}
+  const newPlayer={id:uid(),name,grade:document.getElementById('qrGrade').value,dan:document.getElementById('qrDan').value,org:document.getElementById('qrOrg').value.trim(),hand:selQrHand,memo:''};
+  db.players.push(newPlayer); saveToDB(); selPlayerId=newPlayer.id; closeQuickReg(); renderPlayerSelectList();
+  showToast(`${name} を登録しました`);
+}
+function saveMatch(){
+  if(!selMatchType){showToast('試合種別を選択してください');return;}
+  if(selMatchType!=='1人取り'&&!selResult){showToast('勝敗を選択してください');return;}
+  const player=selPlayerId?db.players.find(p=>p.id===selPlayerId):null;
+  let matchData;
+  if(selMatchType==='1人取り'){
+    matchData={type:'1人取り',soloFoul:parseInt(document.getElementById('soloFoulCount').value)||0,memo:document.getElementById('matchMemo').value.trim()};
+  }else{
+    matchData={type:selMatchType,opponentGrade:selGrade,playerId:selPlayerId||null,playerName:player?player.name:null,playerGradeAtTime:player?player.grade:(selGrade||null),result:selResult,cardDiff:parseInt(document.getElementById('cardDiff').value)||0,foul:parseInt(document.getElementById('foulCount').value)||0,memo:document.getElementById('matchMemo').value.trim()};
+  }
+  if(editMatchId){const idx=db.matches.findIndex(m=>m.id===editMatchId);if(idx!==-1)db.matches[idx]={...db.matches[idx],...matchData};}
+  else{const dm=db.matches.filter(m=>m.date===selectedDate);db.matches.push({id:uid(),date:selectedDate,order:dm.length+1,...matchData});}
+  saveToDB(); closeMatchModal(); renderCalendar(); renderDaySection();
+  showToast(editMatchId?'記録を更新しました':'試合を記録しました');
+}
+function deleteMatch(id){
+  if(!confirm('この試合記録を削除しますか？'))return;
+  db.matches=db.matches.filter(m=>m.id!==id);
+  db.matches.filter(m=>m.date===selectedDate).sort((a,b)=>a.order-b.order).forEach((m,i)=>m.order=i+1);
+  saveToDB(); renderCalendar(); renderDaySection(); showToast('削除しました');
+}
+
+// ==================== PLAYERS ====================
+let editPlayerId2=null,selHand=null,sortMode='name';
+function setSortMode(mode){
+  sortMode=mode;
+  document.getElementById('sortByGradeBtn').classList.toggle('active',mode==='grade');
+  document.getElementById('sortByOrgBtn').classList.toggle('active',mode==='org');
+  renderPlayerList();
+}
+function updateOrgFilter(){
+  const sel=document.getElementById('filterOrg'); const current=sel.value;
+  const orgs=[...new Set(db.players.map(p=>p.org).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
+  sel.innerHTML='<option value="">すべての所属</option>'+orgs.map(o=>`<option value="${o}"${o===current?' selected':''}>${o}</option>`).join('');
+}
+function renderPlayerList(){
+  updateOrgFilter();
+  const filterGrade=document.getElementById('filterGrade').value;
+  const filterOrg=document.getElementById('filterOrg').value;
+  const list=document.getElementById('playerList'); const empty=document.getElementById('noPlayers');
+  list.innerHTML='';
+  let players=[...db.players];
+  if(filterGrade)players=players.filter(p=>p.grade===filterGrade);
+  if(filterOrg)players=players.filter(p=>p.org===filterOrg);
+  if(db.players.length===0){empty.style.display='block';return;} empty.style.display='none';
+  if(sortMode==='grade'){
+    const go={'A':0,'B':1,'C':2,'D':3,'E':4,'':5};
+    players.sort((a,b)=>(go[a.grade]??5)-(go[b.grade]??5)||a.name.localeCompare(b.name,'ja'));
+    const groups={};
+    players.forEach(p=>{const k=p.grade||'未設定';if(!groups[k])groups[k]=[];groups[k].push(p);});
+    ['A','B','C','D','E','未設定'].forEach(g=>{
+      if(!groups[g])return;
+      const hdr=document.createElement('div'); hdr.className='player-group-header'; hdr.textContent=g==='未設定'?'級未設定':`${g}級`; list.appendChild(hdr);
+      groups[g].forEach(p=>list.appendChild(buildPlayerCard(p)));
+    });
+  }else if(sortMode==='org'){
+    players.sort((a,b)=>(a.org||'').localeCompare(b.org||'','ja')||a.name.localeCompare(b.name,'ja'));
+    const groups={};
+    players.forEach(p=>{const k=p.org||'所属未設定';if(!groups[k])groups[k]=[];groups[k].push(p);});
+    Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ja')).forEach(org=>{
+      const hdr=document.createElement('div'); hdr.className='player-group-header'; hdr.textContent=org; list.appendChild(hdr);
+      groups[org].forEach(p=>list.appendChild(buildPlayerCard(p)));
+    });
+  }else{
+    players.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+    if(players.length===0){list.innerHTML='<div style="text-align:center;color:var(--gray);font-size:13px;padding:20px;">条件に一致する選手がいません</div>';return;}
+    players.forEach(p=>list.appendChild(buildPlayerCard(p)));
+  }
+  if(players.length===0)list.innerHTML='<div style="text-align:center;color:var(--gray);font-size:13px;padding:20px;">条件に一致する選手がいません</div>';
+}
+function buildPlayerCard(p){
+  const el=document.createElement('div'); el.className='player-card';
+  el.innerHTML=`<div class="player-avatar">${p.name[0]}</div>
+    <div class="player-info">
+      <div class="player-name">${p.name} ${p.grade?`<span class="badge badge-${p.grade}">${p.grade}級</span>`:''}</div>
+      <div class="player-meta">${[p.dan,p.org,p.hand?p.hand+'利き':''].filter(Boolean).join('　')}</div>
+      ${p.memo?`<div class="player-meta" style="margin-top:2px;">📝 ${p.memo}</div>`:''}
+    </div>
+    <div class="player-actions">
+      <button class="btn btn-secondary btn-sm" onclick="openPlayerModal('${p.id}')">編集</button>
+      <button class="btn btn-danger btn-sm" onclick="deletePlayer('${p.id}')">削除</button>
+    </div>`;
+  return el;
+}
+function openPlayerModal(id){
+  editPlayerId2=id||null; selHand=null;
+  document.getElementById('playerModalTitle').textContent=id?'選手を編集':'選手を追加';
+  document.querySelectorAll('#handChips .chip').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('editPlayerId').value=id||'';
+  const dl=document.getElementById('orgSuggestions');
+  const orgs=[...new Set(db.players.map(p=>p.org).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
+  dl.innerHTML=orgs.map(o=>`<option value="${o}">`).join('');
+  if(id){
+    const p=db.players.find(x=>x.id===id); if(!p)return;
+    document.getElementById('playerName').value=p.name;
+    document.getElementById('playerGrade').value=p.grade||'';
+    setDanOptions(document.getElementById('playerDan'), p.grade||'');
+    document.getElementById('playerDan').value=p.dan||'';
+    document.getElementById('playerOrg').value=p.org||'';
+    document.getElementById('playerMemo').value=p.memo||'';
+    selHand=p.hand||null;
+    if(selHand)document.querySelectorAll('#handChips .chip').forEach(c=>{if(c.dataset.val===selHand)c.classList.add('selected');});
+  }else{
+    ['playerName','playerOrg','playerMemo'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('playerGrade').value='';
+    setDanOptions(document.getElementById('playerDan'),'');
+  }
+  document.getElementById('playerModal').classList.add('open');
+}
+function closePlayerModal(){ document.getElementById('playerModal').classList.remove('open'); }
+function selectHand(el){ document.querySelectorAll('#handChips .chip').forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); selHand=el.dataset.val; }
+function savePlayer(){
+  const name=document.getElementById('playerName').value.trim(); if(!name){showToast('名前を入力してください');return;}
+  const data={name,grade:document.getElementById('playerGrade').value,dan:document.getElementById('playerDan').value,org:document.getElementById('playerOrg').value.trim(),hand:selHand,memo:document.getElementById('playerMemo').value.trim()};
+  if(editPlayerId2){const idx=db.players.findIndex(p=>p.id===editPlayerId2);if(idx!==-1)db.players[idx]={...db.players[idx],...data};}
+  else{db.players.push({id:uid(),...data});}
+  saveToDB(); closePlayerModal(); renderPlayerList();
+  showToast(editPlayerId2?'選手情報を更新しました':'選手を追加しました');
+}
+function deletePlayer(id){
+  if(!confirm('この選手データを削除しますか？\n※過去の試合記録は残ります（匿名扱いになります）'))return;
+  db.players=db.players.filter(p=>p.id!==id);
+  db.matches.forEach(m=>{if(m.playerId===id)m.playerId=null;});
+  saveToDB(); renderPlayerList(); showToast('削除しました');
+}
+
+// ==================== ANALYTICS ====================
+let periodType='month';
+function initAnalytics(){
+  const now=new Date();
+  document.getElementById('analyticsPeriodMonth').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const yi=document.getElementById('analyticsPeriodYear'); yi.innerHTML='';
+  for(let y=now.getFullYear();y>=2015;y--){const o=document.createElement('option');o.value=y;o.textContent=`${y}年`;yi.appendChild(o);}
+}
+function selectPeriodType(el){
+  document.querySelectorAll('#periodTypeChips .chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected'); periodType=el.dataset.val;
+  document.getElementById('periodMonthRow').style.display=periodType==='month'?'block':'none';
+  document.getElementById('periodYearRow').style.display=periodType==='year'?'block':'none';
+}
+function runAnalytics(){
+  let matches=[...db.matches];
+  if(periodType==='month'){const val=document.getElementById('analyticsPeriodMonth').value;if(val)matches=matches.filter(m=>m.date&&m.date.startsWith(val));}
+  else{const val=document.getElementById('analyticsPeriodYear').value;if(val)matches=matches.filter(m=>m.date&&m.date.startsWith(val));}
+  const type=document.getElementById('analyticsType').value;
+  if(type!=='all')matches=matches.filter(m=>m.type===type);
+  const result=document.getElementById('analyticsResult'); result.style.display='block'; result.innerHTML='';
+  if(matches.length===0){result.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><p>該当する試合記録がありません</p></div>';return;}
+  const card=document.createElement('div'); card.className='card';
+  const rows=[]; rows.push({label:'すべて',grade:null,matches});
+  ['A','B','C','D','E'].forEach(g=>{const gm=matches.filter(m=>m.opponentGrade===g);if(gm.length>0)rows.push({label:g+'級',grade:g,matches:gm});});
+  const soloAll=matches.filter(m=>m.type==='1人取り');
+  let html=`<div class="card-title">分析結果</div><div style="overflow-x:auto;"><table class="ana-table"><thead><tr><th>級</th><th>試合</th><th>勝敗</th><th>勝率</th><th>勝時<br>枚差</th><th>敗時<br>枚差</th><th>お手つき</th></tr></thead><tbody>`;
+  rows.forEach(row=>{
+    const vsM=row.matches.filter(m=>m.type!=='1人取り');
+    const soloM=row.matches.filter(m=>m.type==='1人取り');
+    const wins=vsM.filter(m=>m.result==='勝').length; const losses=vsM.filter(m=>m.result==='敗').length; const total=vsM.length;
+    const winRate=total>0?(wins/total*100).toFixed(1)+'%':'--';
+    const winDiffs=vsM.filter(m=>m.result==='勝').map(m=>m.cardDiff||0);
+    const lossDiffs=vsM.filter(m=>m.result==='敗').map(m=>m.cardDiff||0);
+    const fouls=vsM.map(m=>m.foul||0);
+    const avgWin=winDiffs.length>0?(winDiffs.reduce((a,b)=>a+b,0)/winDiffs.length).toFixed(1):'--';
+    const avgLose=lossDiffs.length>0?(lossDiffs.reduce((a,b)=>a+b,0)/lossDiffs.length).toFixed(1):'--';
+    const avgFoul=fouls.length>0?(fouls.reduce((a,b)=>a+b,0)/fouls.length).toFixed(1):'--';
+    const badgeHtml=row.grade?`<span class="badge badge-${row.grade}">${row.label}</span>`:`<span class="ana-all-label">${row.label}</span>`;
+    const winRateNum=total>0?wins/total*100:0;
+    const barHtml=total>0?`<div class="ana-bar-wrap"><div class="ana-bar-fill" style="width:${winRateNum.toFixed(0)}%"></div></div>`:'';
+    const wlHtml=total>0?`<div class="ana-wl-inner"><span class="ana-win">${wins}勝</span><span class="ana-lose">${losses}敗</span></div>`:`<span style="color:var(--gray-light)">--</span>`;
+    const soloNote=(row.grade===null&&soloM.length>0)?`<div class="ana-solo-note">１人取り ${soloM.length}回</div>`:'';
+    html+=`<tr><td>${badgeHtml}${soloNote}</td><td class="ana-num">${row.matches.length}</td><td class="ana-wl">${wlHtml}</td><td class="ana-num">${winRate}${barHtml}</td><td class="ana-num ${winDiffs.length>0?'ana-win-val':''}">${avgWin!=='--'?avgWin+'枚':'--'}</td><td class="ana-num ${lossDiffs.length>0?'ana-lose-val':''}">${avgLose!=='--'?avgLose+'枚':'--'}</td><td class="ana-num">${avgFoul!=='--'?avgFoul+'枚':'--'}</td></tr>`;
+  });
+  if(soloAll.length>0&&(type==='all'||type==='1人取り')){
+    const soloFouls=soloAll.map(m=>m.soloFoul||0);
+    const avgSF=soloFouls.length>0?(soloFouls.reduce((a,b)=>a+b,0)/soloFouls.length).toFixed(1):'--';
+    html+=`<tr class="ana-solo-row"><td><span class="ana-solo-badge">１人取り</span></td><td class="ana-num">${soloAll.length}回</td><td colspan="4" style="color:var(--gray-light);font-size:11px;text-align:center;">対人戦なし</td><td class="ana-num">${avgSF}枚</td></tr>`;
+  }
+  html+=`</tbody></table></div>`;
+  card.innerHTML=html; result.appendChild(card);
+}
+
+// ==================== INIT ====================
+openIDB()
+  .then(() => loadFromIDB())
+  .then(() => {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    initCalendar();
+  })
+  .catch(() => {
+    // IndexedDB失敗時はlocalStorageにフォールバック
+    try { const r=localStorage.getItem('karuta_db_v1'); if(r) db=JSON.parse(r); } catch(e) {}
+    document.getElementById('loadingOverlay').style.display = 'none';
+    initCalendar();
+  });
+</script>
+</body>
+</html>
