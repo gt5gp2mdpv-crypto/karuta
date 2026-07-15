@@ -227,6 +227,23 @@
   #loadingOverlay p { font-family:'Shippori Mincho',serif; font-size:15px; color:var(--gray); }
   .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--red); border-radius:50%; animation:spin .8s linear infinite; }
   @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* Daily Notes */
+  .daily-note-section { margin-top:4px; }
+  .daily-note-section .card-title { margin-bottom:18px; }
+  .daily-note-label { font-family:'Shippori Mincho',serif; font-size:14px; font-weight:700; color:var(--ink); margin-bottom:10px; margin-top:6px; letter-spacing:.04em; }
+  .daily-note-label:first-of-type { margin-top:0; }
+  .daily-note-label .label-icon { margin-right:4px; }
+  .daily-note-subsection { margin-bottom:16px; padding-left:4px; }
+  .daily-note-subsection-title { font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:600; color:var(--gray); margin-bottom:8px; letter-spacing:.03em; }
+  .tag-chip-group { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .tag-chip { padding:4px 12px; border-radius:16px; border:1.5px solid var(--border); background:var(--paper); font-size:12px; cursor:pointer; transition:all .18s; font-family:'Noto Sans JP',sans-serif; color:var(--gray); font-weight:500; }
+  .tag-chip:hover { border-color:var(--gold); }
+  .tag-chip.selected { background:var(--gold); color:#fff; border-color:var(--gold); }
+  .tag-input-item { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; padding:8px 10px; background:var(--paper); border:1px solid var(--border); border-radius:8px; }
+  .tag-input-item .tag-badge { flex-shrink:0; padding:4px 10px; border-radius:12px; background:var(--gold); color:#fff; font-size:11px; font-weight:700; white-space:nowrap; margin-top:4px; }
+  .tag-input-item textarea { flex:1; border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-family:'Noto Sans JP',sans-serif; font-size:14px; min-height:36px; resize:vertical; background:#fff; }
+  .tag-input-item textarea:focus { outline:none; border-color:var(--gold); }
 </style>
 </head>
 <body>
@@ -246,6 +263,7 @@
   <button class="active" onclick="showPage('calendar')" id="nav-calendar"><span class="nav-icon">📅</span>記録</button>
   <button onclick="showPage('players')" id="nav-players"><span class="nav-icon">👤</span>選手</button>
   <button onclick="showPage('analytics')" id="nav-analytics"><span class="nav-icon">📊</span>分析</button>
+  <button onclick="showPage('notes')" id="nav-notes"><span class="nav-icon">📓</span>ノート</button>
   <button onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span>設定</button>
 </nav>
 
@@ -265,8 +283,11 @@
     </div>
   </div>
   <div id="daySection" style="display:none;">
-    <div class="card">
+    <div class="card" id="dailyNoteCard">
       <div class="card-title" id="dayTitle"></div>
+      <button class="btn btn-primary btn-block" onclick="openGoalModal()" style="margin-bottom:10px;">💪 目標</button>
+      <button class="btn btn-gold btn-block" onclick="openReflectionModal()" style="margin-bottom:14px;">🔄 一日の反省</button>
+      <div style="border-top:1px solid var(--border);margin-bottom:14px;"></div>
       <div id="matchList"></div>
       <button class="btn btn-primary btn-block" onclick="openAddMatch()">＋ 試合を追加</button>
     </div>
@@ -375,6 +396,27 @@
     <button class="btn btn-gold btn-block" onclick="renderGraphs()">グラフを表示</button>
 
     <div id="graphContainer" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<!-- PAGE: NOTES -->
+<div id="page-notes" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="font-family:'Shippori Mincho',serif;font-size:17px;font-weight:700;">📓 ノート</div>
+  </div>
+  <div class="card">
+    <div class="card-title">並び替え</div>
+    <div class="filter-bar" style="margin-bottom:0;">
+      <button class="sort-btn active" id="notesSortNewest" onclick="setNotesSort('newest')">新しい順</button>
+      <button class="sort-btn" id="notesSortOldest" onclick="setNotesSort('oldest')">古い順</button>
+      <button class="sort-btn" id="notesSortMost" onclick="setNotesSort('most')">多い順</button>
+      <button class="sort-btn" id="notesSortLeast" onclick="setNotesSort('least')">少ない順</button>
+    </div>
+  </div>
+  <div id="notesTagList"></div>
+  <div id="noNotes" class="empty-state">
+    <div class="empty-icon">📓</div>
+    <p>まだノートがありません<br>記録タブで目標や反省を入力すると<br>ここに表示されます</p>
   </div>
 </div>
 
@@ -602,6 +644,72 @@
   </div>
 </div>
 
+<!-- MODAL: GOAL (今日頑張るところ) -->
+<div class="modal-overlay" id="goalModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💪 今日頑張るところ</div>
+    <div class="daily-note-subsection">
+      <div class="daily-note-subsection-title">タグを選んで目標を記入</div>
+      <div class="tag-chip-group" id="goalTagChips"></div>
+      <div id="goalInputs"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeGoalModal()">キャンセル</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="saveGoalFromModal()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REFLECTION (一日の反省) -->
+<div class="modal-overlay" id="reflectionModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔄 一日の反省</div>
+
+    <!-- 目標の表示（保存済みの目標がある場合のみ） -->
+    <div id="refModalGoalDisplay" style="display:none; margin-bottom:16px;">
+      <div class="daily-note-subsection-title" style="color:var(--ink);font-weight:700;">📋 今日立てた目標</div>
+      <div id="refModalGoalList" style="background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:10px;"></div>
+    </div>
+
+    <!-- 目標に対する振り返り -->
+    <div id="refModalGoalRefSection" style="display:none; margin-bottom:16px;">
+      <div class="daily-note-subsection-title">目標の振り返り</div>
+      <div id="refModalGoalRefInputs"></div>
+    </div>
+
+    <!-- 新しい気づき・反省 -->
+    <div class="daily-note-subsection">
+      <div class="daily-note-subsection-title">新しくタグを選んで反省を追加</div>
+      <div class="tag-chip-group" id="reflectionTagChips"></div>
+      <div id="reflectionInputs"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeReflectionModal()">キャンセル</button>
+      <button class="btn btn-gold" style="flex:2;" onclick="saveReflectionFromModal()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOTE DETAIL -->
+<div class="modal-overlay" id="noteDetailModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="noteDetailTitle">📓 ノート</div>
+    <div id="noteDetailGoalSection" style="display:none; margin-bottom:16px;">
+      <div class="daily-note-subsection-title" style="color:var(--ink);font-weight:700;margin-bottom:6px;">📋 目標</div>
+      <div id="noteDetailGoalList" style="background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;"></div>
+    </div>
+    <div class="daily-note-subsection-title" style="color:var(--ink);font-weight:700;margin-bottom:8px;">🔄 反省一覧</div>
+    <div id="noteDetailReflectionList"></div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-secondary btn-block" onclick="closeNoteDetail()">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -611,7 +719,7 @@ const IDB_VER  = 1;
 const IDB_STORE = 'data';
 const IDB_KEY   = 'karuta_main';
 let idb = null;
-let db  = { players: [], matches: [] };
+let db  = { players: [], matches: [], dailyNotes: {} };
 
 function openIDB() {
   return new Promise((resolve, reject) => {
@@ -637,6 +745,8 @@ function loadFromIDB() {
           if (raw) { db = JSON.parse(raw); saveToDB(); }
         } catch(e2) {}
       }
+      // Ensure dailyNotes exists
+      if (!db.dailyNotes) db.dailyNotes = {};
       resolve();
     };
     req.onerror = () => resolve();
@@ -661,6 +771,284 @@ function showToast(msg) {
 }
 function dateKey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
+// ==================== DAILY NOTES ====================
+const TAGS = [
+  '#メンタル', '#試合運び', '#調子', '#送り札', '#払い',
+  '#相手の崩れ方', '#自分の崩れ方', '#一字札', '#二字札', '#三字札',
+  '#ガッチ', '#手出し', '#運命戦', '#声かけ（団体戦）',
+  '#分け合わせ（団体戦）', '#払い練', '#筋トレ'
+];
+
+// データ構造:
+// dailyNotes[dateKey] = {
+//   goal: { "#tag1": "text", "#tag2": "text" },
+//   reflection: {
+//     fromGoal: { "#tag1": "text" },
+//     newReflections: { "#tag3": "text" }
+//   }
+// }
+
+function getEmptyNote() {
+  return { goal: {}, reflection: { fromGoal: {}, newReflections: {} } };
+}
+
+// 古い形式を新しい形式に変換
+function migrateNoteIfNeeded(note) {
+  if (!note) return getEmptyNote();
+  // 古い形式: goal が文字列、goalTags が配列
+  if (typeof note.goal === 'string' || Array.isArray(note.goalTags)) {
+    const oldGoal = typeof note.goal === 'string' ? note.goal : '';
+    const oldGoalTags = Array.isArray(note.goalTags) ? note.goalTags : [];
+    const oldReflection = typeof note.reflection === 'string' ? note.reflection : '';
+    const oldReflectionTags = Array.isArray(note.reflectionTags) ? note.reflectionTags : [];
+
+    const newNote = {
+      goal: {},
+      reflection: { fromGoal: {}, newReflections: {} }
+    };
+
+    // goal: タグがない場合はテキストを #その他 にまとめる
+    if (oldGoal.trim()) {
+      if (oldGoalTags.length > 0) {
+        // タグごとにテキストを割り振り（古い形式ではタグとテキストが分離していたので、テキストは最初のタグにまとめる）
+        newNote.goal[oldGoalTags[0]] = oldGoal;
+        oldGoalTags.slice(1).forEach(t => { newNote.goal[t] = ''; });
+      } else {
+        newNote.goal['#その他'] = oldGoal;
+      }
+    } else if (oldGoalTags.length > 0) {
+      oldGoalTags.forEach(t => { newNote.goal[t] = ''; });
+    }
+
+    // reflection
+    if (oldReflection.trim()) {
+      if (oldReflectionTags.length > 0) {
+        newNote.reflection.newReflections[oldReflectionTags[0]] = oldReflection;
+        oldReflectionTags.slice(1).forEach(t => { newNote.reflection.newReflections[t] = ''; });
+      } else {
+        newNote.reflection.newReflections['#その他'] = oldReflection;
+      }
+    } else if (oldReflectionTags.length > 0) {
+      oldReflectionTags.forEach(t => { newNote.reflection.newReflections[t] = ''; });
+    }
+
+    return newNote;
+  }
+  // 新しい形式の場合はそのまま（一部欠けている場合の補完）
+  if (!note.goal) note.goal = {};
+  if (!note.reflection) note.reflection = { fromGoal: {}, newReflections: {} };
+  if (!note.reflection.fromGoal) note.reflection.fromGoal = {};
+  if (!note.reflection.newReflections) note.reflection.newReflections = {};
+  return note;
+}
+
+function loadDailyNote(dateKey) {
+  if (!db.dailyNotes) db.dailyNotes = {};
+  const raw = db.dailyNotes[dateKey];
+  if (!raw) return getEmptyNote();
+  const migrated = migrateNoteIfNeeded(raw);
+  // 変換が必要だった場合は保存
+  if (migrated !== raw) {
+    db.dailyNotes[dateKey] = migrated;
+    saveToDB();
+  }
+  return migrated;
+}
+
+function saveDailyNote(dateKey, data) {
+  if (!db.dailyNotes) db.dailyNotes = {};
+  db.dailyNotes[dateKey] = data;
+  saveToDB();
+}
+
+function renderDailyNoteSection() {
+  // 日付選択時の呼び出し - カードの表示はHTMLで固定なので何もしない
+  document.getElementById('dailyNoteCard').style.display = 'block';
+}
+
+// タグチップをレンダリング（選択済みのタグはselected状態）
+function renderTagChips(container, selectedTags, type) {
+  container.innerHTML = '';
+  TAGS.forEach(tag => {
+    const chip = document.createElement('div');
+    chip.className = 'tag-chip' + (selectedTags.includes(tag) ? ' selected' : '');
+    chip.textContent = tag;
+    chip.dataset.tag = tag;
+    chip.onclick = function() { onTagChipClick(this, type); };
+    container.appendChild(chip);
+  });
+}
+
+// タグごとの入力欄をレンダリング
+function renderTagInputs(container, data, type) {
+  const tags = Object.keys(data);
+  container.innerHTML = '';
+  tags.forEach(tag => {
+    const item = document.createElement('div');
+    item.className = 'tag-input-item';
+    item.innerHTML = `<span class="tag-badge">${tag}</span><textarea placeholder="${tag}について記入" data-tag="${tag}" data-type="${type}">${escapeHtml(data[tag] || '')}</textarea>`;
+    container.appendChild(item);
+  });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
+}
+
+// タグチップクリック時の処理
+function onTagChipClick(el, type) {
+  const tag = el.dataset.tag;
+  if (el.classList.contains('selected')) {
+    el.classList.remove('selected');
+    if (type === 'goal') {
+      removeTagInput('goalInputs', tag);
+    } else if (type === 'reflection') {
+      removeTagInput('reflectionInputs', tag);
+    }
+  } else {
+    el.classList.add('selected');
+    if (type === 'goal') {
+      addTagInput('goalInputs', tag);
+    } else if (type === 'reflection') {
+      addTagInput('reflectionInputs', tag);
+    }
+  }
+}
+
+// タグ入力欄を追加
+function addTagInput(containerId, tag) {
+  const container = document.getElementById(containerId);
+  // 既に同じタグの入力欄がある場合は追加しない
+  const existing = container.querySelectorAll('.tag-input-item textarea');
+  for (const ta of existing) {
+    if (ta.dataset.tag === tag) return;
+  }
+  const item = document.createElement('div');
+  item.className = 'tag-input-item';
+  item.innerHTML = `<span class="tag-badge">${tag}</span><textarea placeholder="${tag}について記入" data-tag="${tag}"></textarea>`;
+  container.appendChild(item);
+}
+
+// タグ入力欄を削除
+function removeTagInput(containerId, tag) {
+  const container = document.getElementById(containerId);
+  const items = container.querySelectorAll('.tag-input-item');
+  for (const item of items) {
+    const ta = item.querySelector('textarea');
+    if (ta && ta.dataset.tag === tag) {
+      item.remove();
+      break;
+    }
+  }
+}
+
+// ==================== GOAL MODAL ====================
+function openGoalModal() {
+  if (!selectedDate) { showToast('カレンダーから日付を選択してください'); return; }
+  const note = loadDailyNote(selectedDate);
+  const chips = document.getElementById('goalTagChips');
+  const inputs = document.getElementById('goalInputs');
+  inputs.innerHTML = '';
+  renderTagChips(chips, Object.keys(note.goal), 'goal');
+  renderTagInputs(inputs, note.goal, 'goal');
+  document.getElementById('goalModal').classList.add('open');
+}
+
+function closeGoalModal() {
+  document.getElementById('goalModal').classList.remove('open');
+}
+
+function saveGoalFromModal() {
+  if (!selectedDate) return;
+  const note = loadDailyNote(selectedDate);
+  const goal = {};
+  document.querySelectorAll('#goalInputs .tag-input-item textarea').forEach(ta => {
+    goal[ta.dataset.tag] = ta.value;
+  });
+  // 既存の反省データは維持
+  note.goal = goal;
+  saveDailyNote(selectedDate, note);
+  closeGoalModal();
+  showToast('目標を保存しました');
+}
+
+// ==================== REFLECTION MODAL ====================
+function openReflectionModal() {
+  if (!selectedDate) { showToast('カレンダーから日付を選択してください'); return; }
+  const note = loadDailyNote(selectedDate);
+  const hasGoal = Object.keys(note.goal).length > 0;
+
+  // 目標表示エリア
+  const goalDisplay = document.getElementById('refModalGoalDisplay');
+  const goalList = document.getElementById('refModalGoalList');
+  if (hasGoal) {
+    goalDisplay.style.display = 'block';
+    goalList.innerHTML = '';
+    Object.keys(note.goal).forEach(tag => {
+      const item = document.createElement('div');
+      item.className = 'tag-input-item';
+      item.innerHTML = `<span class="tag-badge">${tag}</span><div style="flex:1;padding:6px 8px;font-size:14px;color:var(--gray);background:#fff;border-radius:6px;border:1px solid var(--border);">${escapeHtml(note.goal[tag] || '')}</div>`;
+      goalList.appendChild(item);
+    });
+  } else {
+    goalDisplay.style.display = 'none';
+  }
+
+  // 目標の振り返り入力欄
+  const goalRefSection = document.getElementById('refModalGoalRefSection');
+  const goalRefInputs = document.getElementById('refModalGoalRefInputs');
+  goalRefInputs.innerHTML = '';
+  if (hasGoal) {
+    goalRefSection.style.display = 'block';
+    Object.keys(note.goal).forEach(tag => {
+      const item = document.createElement('div');
+      item.className = 'tag-input-item';
+      const savedVal = (note.reflection.fromGoal && note.reflection.fromGoal[tag]) || '';
+      item.innerHTML = `<span class="tag-badge">${tag}</span><textarea placeholder="${tag}の振り返り" data-tag="${tag}" data-type="reflection-fromgoal">${escapeHtml(savedVal)}</textarea>`;
+      goalRefInputs.appendChild(item);
+    });
+  } else {
+    goalRefSection.style.display = 'none';
+  }
+
+  // 新しい反省
+  const chips = document.getElementById('reflectionTagChips');
+  const inputs = document.getElementById('reflectionInputs');
+  inputs.innerHTML = '';
+  const newRefTags = note.reflection.newReflections ? Object.keys(note.reflection.newReflections) : [];
+  renderTagChips(chips, newRefTags, 'reflection');
+  renderTagInputs(inputs, note.reflection.newReflections || {}, 'reflection');
+
+  document.getElementById('reflectionModal').classList.add('open');
+}
+
+function closeReflectionModal() {
+  document.getElementById('reflectionModal').classList.remove('open');
+}
+
+function saveReflectionFromModal() {
+  if (!selectedDate) return;
+  const note = loadDailyNote(selectedDate);
+
+  // 目標の振り返り
+  const fromGoal = {};
+  document.querySelectorAll('#refModalGoalRefInputs .tag-input-item textarea').forEach(ta => {
+    fromGoal[ta.dataset.tag] = ta.value;
+  });
+
+  // 新しい反省
+  const newReflections = {};
+  document.querySelectorAll('#reflectionInputs .tag-input-item textarea').forEach(ta => {
+    newReflections[ta.dataset.tag] = ta.value;
+  });
+
+  note.reflection = { fromGoal, newReflections };
+  saveDailyNote(selectedDate, note);
+  closeReflectionModal();
+  showToast('反省を保存しました');
+}
+
 // ==================== NAV ====================
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -670,6 +1058,7 @@ function showPage(name) {
   if (name === 'players') renderPlayerList();
   if (name === 'analytics') initAnalytics();
   if (name === 'settings') renderDbStatus();
+  if (name === 'notes') renderNotes();
 }
 
 function renderDbStatus() {
@@ -728,7 +1117,7 @@ function importData(event) {
 function clearAllData() {
   if (!confirm('すべての試合記録・選手データを削除します。\nこの操作は元に戻せません。\n\n本当に削除しますか？')) return;
   if (!confirm('最終確認です。本当にすべて削除しますか？')) return;
-  db = { players: [], matches: [] }; saveToDB();
+  db = { players: [], matches: [], dailyNotes: {} }; saveToDB();
   selectedDate = null; renderCalendar();
   document.getElementById('daySection').style.display = 'none';
   document.getElementById('noDaySelected').style.display = 'block';
@@ -787,6 +1176,8 @@ function renderDaySection(){
   else{matches.forEach((m,idx)=>list.appendChild(buildMatchItem(m,idx+1)));}
   document.getElementById('daySection').style.display='block';
   document.getElementById('noDaySelected').style.display='none';
+  // Render daily notes
+  renderDailyNoteSection();
 }
 function buildMatchItem(m,num){
   const div=document.createElement('div'); div.className='match-item';
@@ -1531,6 +1922,167 @@ function renderGraphs(){
   });
 }
 
+// ==================== NOTES ====================
+let notesSortMode = 'newest';
+
+function setNotesSort(mode) {
+  notesSortMode = mode;
+  document.querySelectorAll('#page-notes .sort-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('notesSort' + mode.charAt(0).toUpperCase() + mode.slice(1));
+  if (btn) btn.classList.add('active');
+  renderNotes();
+}
+
+// dailyNotesからタグごとにデータを集約
+function collectNotesData() {
+  const tagData = {}; // { "#tag": { count, entries: [{date, reflection, goal?}] } }
+  if (!db.dailyNotes) return tagData;
+  
+  Object.keys(db.dailyNotes).forEach(dateKey => {
+    const note = db.dailyNotes[dateKey];
+    if (!note) return;
+    const migrated = migrateNoteIfNeeded(note);
+    
+    // 目標に対する振り返り (fromGoal)
+    if (migrated.reflection && migrated.reflection.fromGoal) {
+      Object.keys(migrated.reflection.fromGoal).forEach(tag => {
+        const text = migrated.reflection.fromGoal[tag];
+        if (!text && !migrated.goal[tag]) return; // 空ならスキップ
+        if (!tagData[tag]) tagData[tag] = { count: 0, entries: [] };
+        tagData[tag].count++;
+        tagData[tag].entries.push({
+          date: dateKey,
+          reflection: text || '',
+          goal: migrated.goal[tag] || ''
+        });
+      });
+    }
+    
+    // 新しい反省 (newReflections)
+    if (migrated.reflection && migrated.reflection.newReflections) {
+      Object.keys(migrated.reflection.newReflections).forEach(tag => {
+        const text = migrated.reflection.newReflections[tag];
+        if (!text) return;
+        if (!tagData[tag]) tagData[tag] = { count: 0, entries: [] };
+        tagData[tag].count++;
+        tagData[tag].entries.push({
+          date: dateKey,
+          reflection: text,
+          goal: ''
+        });
+      });
+    }
+  });
+  
+  return tagData;
+}
+
+function renderNotes() {
+  const tagData = collectNotesData();
+  const tagList = document.getElementById('notesTagList');
+  const noNotes = document.getElementById('noNotes');
+  
+  const tags = Object.keys(tagData);
+  if (tags.length === 0) {
+    tagList.innerHTML = '';
+    noNotes.style.display = 'block';
+    return;
+  }
+  noNotes.style.display = 'none';
+  
+  // 並び替え
+  let sortedTags = [...tags];
+  if (notesSortMode === 'newest') {
+    // 最新のエントリーの日付が新しい順
+    sortedTags.sort((a, b) => {
+      const aLatest = Math.max(...tagData[a].entries.map(e => new Date(e.date)));
+      const bLatest = Math.max(...tagData[b].entries.map(e => new Date(e.date)));
+      return bLatest - aLatest;
+    });
+  } else if (notesSortMode === 'oldest') {
+    sortedTags.sort((a, b) => {
+      const aOldest = Math.min(...tagData[a].entries.map(e => new Date(e.date)));
+      const bOldest = Math.min(...tagData[b].entries.map(e => new Date(e.date)));
+      return aOldest - bOldest;
+    });
+  } else if (notesSortMode === 'most') {
+    sortedTags.sort((a, b) => tagData[b].count - tagData[a].count);
+  } else if (notesSortMode === 'least') {
+    sortedTags.sort((a, b) => tagData[a].count - tagData[b].count);
+  }
+  
+  tagList.innerHTML = '';
+  sortedTags.forEach(tag => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.cursor = 'pointer';
+    card.onclick = function() { openNoteDetail(tag); };
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="tag-badge" style="display:inline-block;padding:6px 14px;border-radius:16px;background:var(--gold);color:#fff;font-size:13px;font-weight:700;">${tag}</span>
+        <span style="font-size:13px;color:var(--gray);font-weight:600;">${tagData[tag].count}件</span>
+      </div>`;
+    tagList.appendChild(card);
+  });
+}
+
+function openNoteDetail(tag) {
+  const tagData = collectNotesData();
+  const data = tagData[tag];
+  if (!data) return;
+  
+  document.getElementById('noteDetailTitle').textContent = `📓 ${tag}`;
+  
+  // 目標セクション
+  const goalSection = document.getElementById('noteDetailGoalSection');
+  const goalList = document.getElementById('noteDetailGoalList');
+  const hasGoal = data.entries.some(e => e.goal);
+  if (hasGoal) {
+    goalSection.style.display = 'block';
+    goalList.innerHTML = '';
+    // ユニークな目標を表示
+    const seenGoals = new Set();
+    data.entries.forEach(e => {
+      if (e.goal && !seenGoals.has(e.goal)) {
+        seenGoals.add(e.goal);
+        const item = document.createElement('div');
+        item.className = 'tag-input-item';
+        item.innerHTML = `<span class="tag-badge">${tag}</span><div style="flex:1;padding:6px 8px;font-size:14px;color:var(--gray);background:#fff;border-radius:6px;border:1px solid var(--border);">${escapeHtml(e.goal)}</div>`;
+        goalList.appendChild(item);
+      }
+    });
+  } else {
+    goalSection.style.display = 'none';
+  }
+  
+  // 反省一覧
+  const refList = document.getElementById('noteDetailReflectionList');
+  refList.innerHTML = '';
+  // 日付降順でソート
+  const sortedEntries = [...data.entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+  sortedEntries.forEach(e => {
+    const [y, m, d] = e.date.split('-');
+    const dateStr = `${y}/${parseInt(m)}/${parseInt(d)}`;
+    const item = document.createElement('div');
+    item.className = 'match-item';
+    let html = `<div class="match-body">
+      <div class="match-summary">${escapeHtml(e.reflection)}</div>
+      <div class="match-detail" style="margin-top:4px;">ー ${dateStr}</div>`;
+    if (e.goal) {
+      html += `<div class="match-detail" style="margin-top:2px;font-size:11px;color:var(--gray-light);">↑ ${escapeHtml(e.goal)}</div>`;
+    }
+    html += `</div>`;
+    item.innerHTML = html;
+    refList.appendChild(item);
+  });
+  
+  document.getElementById('noteDetailModal').classList.add('open');
+}
+
+function closeNoteDetail() {
+  document.getElementById('noteDetailModal').classList.remove('open');
+}
+
 // ==================== INIT ====================
 openIDB()
   .then(() => loadFromIDB())
@@ -1541,6 +2093,8 @@ openIDB()
   .catch(() => {
     // IndexedDB失敗時はlocalStorageにフォールバック
     try { const r=localStorage.getItem('karuta_db_v1'); if(r) db=JSON.parse(r); } catch(e) {}
+    // Ensure dailyNotes exists
+    if (!db.dailyNotes) db.dailyNotes = {};
     document.getElementById('loadingOverlay').style.display = 'none';
     initCalendar();
   });
