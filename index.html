@@ -424,6 +424,22 @@
 <div id="page-settings" class="page">
   <div style="font-family:'Shippori Mincho',serif;font-size:17px;font-weight:700;margin-bottom:16px;">設定・バックアップ</div>
 
+  <!-- Custom Tags -->
+  <div class="card">
+    <div class="card-title">🏷️ カスタムタグ</div>
+    <p style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:12px;">
+      デフォルトにないタグを追加できます。<br>
+      <span style="color:var(--red);font-weight:600;">※ # から始まる名前で入力してください</span>
+    </p>
+    <div id="customTagList" style="margin-bottom:12px;"></div>
+    <div class="flex-row">
+      <div class="form-group" style="flex:3;margin-bottom:0;">
+        <input type="text" id="customTagInput" placeholder="#新しいタグ" style="font-size:14px;">
+      </div>
+      <button class="btn btn-gold" style="flex:1;padding:10px 8px;font-size:13px;" onclick="addCustomTag()">追加</button>
+    </div>
+  </div>
+
   <!-- Own org setting -->
   <div class="card">
     <div class="card-title">🏠 自分の所属会</div>
@@ -772,12 +788,24 @@ function showToast(msg) {
 function dateKey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
 // ==================== DAILY NOTES ====================
-const TAGS = [
+const DEFAULT_TAGS = [
   '#メンタル', '#試合運び', '#調子', '#送り札', '#払い',
   '#相手の崩れ方', '#自分の崩れ方', '#一字札', '#二字札', '#三字札',
   '#ガッチ', '#手出し', '#運命戦', '#声かけ（団体戦）',
-  '#分け合わせ（団体戦）', '#払い練', '#筋トレ'
+  '#分け合わせ（団体戦）', '#払い練', '#筋トレ',
+  '#構え', '#定位置練'
 ];
+
+function getAllTags() {
+  const defaults = [...DEFAULT_TAGS];
+  if (db.customTags && Array.isArray(db.customTags)) {
+    // カスタムタグがデフォルトと重複しないように
+    db.customTags.forEach(t => {
+      if (!defaults.includes(t)) defaults.push(t);
+    });
+  }
+  return defaults;
+}
 
 // データ構造:
 // dailyNotes[dateKey] = {
@@ -869,7 +897,7 @@ function renderDailyNoteSection() {
 // タグチップをレンダリング（選択済みのタグはselected状態）
 function renderTagChips(container, selectedTags, type) {
   container.innerHTML = '';
-  TAGS.forEach(tag => {
+  getAllTags().forEach(tag => {
     const chip = document.createElement('div');
     chip.className = 'tag-chip' + (selectedTags.includes(tag) ? ' selected' : '');
     chip.textContent = tag;
@@ -1077,7 +1105,55 @@ function renderDbStatus() {
     const orgs=[...new Set(db.players.map(p=>p.org).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
     dl.innerHTML=orgs.map(o=>`<option value="${o}">`).join('');
   }
+  // カスタムタグ一覧を表示
+  renderCustomTagList();
 }
+function renderCustomTagList() {
+  const list = document.getElementById('customTagList');
+  if (!list) return;
+  const tags = db.customTags || [];
+  if (tags.length === 0) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--gray-light);padding:4px 0;">追加したタグはありません</div>';
+    return;
+  }
+  list.innerHTML = '';
+  tags.forEach((tag, i) => {
+    const item = document.createElement('div');
+    item.className = 'tag-input-item';
+    item.innerHTML = `<span class="tag-badge">${tag}</span>
+      <div style="flex:1;"></div>
+      <button class="btn btn-danger btn-sm" onclick="deleteCustomTag(${i})" style="padding:4px 10px;font-size:11px;">削除</button>`;
+    list.appendChild(item);
+  });
+}
+
+function addCustomTag() {
+  const input = document.getElementById('customTagInput');
+  if (!input) return;
+  let tag = input.value.trim();
+  if (!tag) { showToast('タグ名を入力してください'); return; }
+  if (!tag.startsWith('#')) tag = '#' + tag;
+  // 重複チェック
+  const allTags = getAllTags();
+  if (allTags.includes(tag)) { showToast('このタグは既に存在します'); return; }
+  if (!db.customTags) db.customTags = [];
+  db.customTags.push(tag);
+  saveToDB();
+  input.value = '';
+  renderCustomTagList();
+  showToast(`「${tag}」を追加しました`);
+}
+
+function deleteCustomTag(index) {
+  if (!db.customTags || !db.customTags[index]) return;
+  const tag = db.customTags[index];
+  if (!confirm(`「${tag}」を削除しますか？\n既存のデータは削除されません。`)) return;
+  db.customTags.splice(index, 1);
+  saveToDB();
+  renderCustomTagList();
+  showToast(`「${tag}」を削除しました`);
+}
+
 function saveMyOrg(){
   const val = document.getElementById('myOrgInput').value.trim();
   db.myOrg = val;
