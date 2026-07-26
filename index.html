@@ -518,7 +518,7 @@
     <div class="modal-title" id="matchModalTitle">試合を記録</div>
     <div class="form-group">
       <label>試合種別</label>
-      <div class="chip-group">
+      <div class="chip-group" id="matchTypeChips">
         <div class="chip" data-val="練習(同会)" onclick="selectMatchType(this)">練習（同会）</div>
         <div class="chip" data-val="練習(他会)" onclick="selectMatchType(this)">練習（他会）</div>
         <div class="chip" data-val="大会" onclick="selectMatchType(this)">大会</div>
@@ -1313,11 +1313,13 @@ function openEditMatch(id){
 }
 function closeMatchModal(){ document.getElementById('matchModal').classList.remove('open'); }
 function selectMatchType(el){
-  document.querySelectorAll('#matchModal > .modal > .form-group:first-of-type .chip').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected'); selMatchType=el.dataset.val;
-  document.getElementById('vsFields').style.display=selMatchType==='1人取り'?'none':'block';
+  const isSelected=el.classList.contains('selected');
+  document.querySelectorAll('#matchTypeChips .chip').forEach(c=>c.classList.remove('selected'));
+  selMatchType=isSelected?null:el.dataset.val;
+  if(selMatchType)el.classList.add('selected');
+  document.getElementById('vsFields').style.display=selMatchType&&selMatchType!=='1人取り'?'block':'none';
   document.getElementById('soloFields').style.display=selMatchType==='1人取り'?'block':'none';
-  if(selMatchType!=='1人取り')renderPlayerSelectList();
+  if(selMatchType&&selMatchType!=='1人取り')renderPlayerSelectList();
 }
 function selectGrade(el){
   document.querySelectorAll('#gradeChips .chip').forEach(c=>c.classList.remove('selected'));
